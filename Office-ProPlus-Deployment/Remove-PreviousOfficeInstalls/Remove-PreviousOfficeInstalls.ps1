@@ -1,29 +1,29 @@
-﻿[CmdletBinding(SupportsShouldProcess=$true)]
+[CmdletBinding(SupportsShouldProcess=$true)]
 param(
 [Parameter(ValueFromPipelineByPropertyName=$true)]
 [bool]$RemoveClickToRunVersions = $true,
 
 [Parameter(ValueFromPipelineByPropertyName=$true)]
-[bool]$Remove2016Installs = $false,
+[bool]$Remove2016Installs = $true,
 
 [Parameter(ValueFromPipelineByPropertyName=$true)]
-[bool]$Force = $false,
+[bool]$Force = $true,
 
 [Parameter(ValueFromPipelineByPropertyName=$true)]
-[bool]$KeepUserSettings = $true,
+[bool]$KeepUserSettings = $false,
 
 [Parameter(ValueFromPipelineByPropertyName=$true)]
-[bool]$KeepLync = $false,
+[bool]$KeepLync = $true,
 
 [Parameter(ValueFromPipelineByPropertyName=$true)]
-[bool]$NoReboot = $false,
+[bool]$NoReboot = $true,
 
 [Parameter(ValueFromPipelineByPropertyName=$true)]
 [bool]$Quiet = $true,
 
 [Parameter()]
 [ValidateSet("AllOfficeProducts","MainOfficeProduct","Visio","Project","Lync")]
-[string[]]$ProductsToRemove = "AllOfficeProducts",
+[string[]]$ProductsToRemove = "MainOfficeProduct",
 
 [Parameter()]
 [ValidateSet("O365ProPlusRetail","O365BusinessRetail","VisioProRetail","ProjectProRetail", "SPDRetail", "VisioProXVolume", "VisioStdXVolume", 
@@ -438,7 +438,12 @@ Function Remove-PreviousOfficeInstalls{
 
                         try{
                              if($ActionFile -And (Test-Path -Path $ActionFile)){
-                                $MainOfficeProductDisplayName = $MainOfficeProduct.DisplayName
+                              $MainOfficeProductDisplayName = $MainOfficeProduct.DisplayName  
+                             if($MainOfficeProductDisplayName -match "Microsoft Office Professional Plus"){
+                             $MainOfficeProductName = "ProPlus"
+                             } else {
+                                    $MainOfficeProductName = $MainOfficeProductDisplayName 
+                             }
                                 Write-Host "`tRemoving "$MainOfficeProduct.DisplayName"..."
                                 WriteToLogFile -LNumber $(LINENUM) -FName $currentFileName -ActionError "Removing the MainOfficeProduct..." -LogFilePath $LogFilePath
                                 $cmdLine = """$ActionFile"" $MainOfficeProductName $argList"
@@ -1345,9 +1350,9 @@ param(
     if($ProductName -eq 'MainOfficeProduct'){
         $MainOfficeProducts = @()
         #$Products = (Get-OfficeVersion).DisplayName | select -Unique
-        $MainOfficeProducts = (Get-OfficeVersion)
+        $MainOfficeProducts = (Get-OfficeVersion) | select -Unique
         if($MainOfficeProducts){
-            if($MainOfficeProducts.GetType().Name -eq "Object[]"){
+            if($MainOfficeProducts.GetType().Name -match "Object"){
                 $primaryOfficeLanguage = GetClientCulture
                 $MainOfficeProduct = (Get-OfficeVersion) | ? {$_.DisplayName -match $primaryOfficeLanguage}
                 $ProductName = $MainOfficeProduct.DisplayName
@@ -1381,7 +1386,7 @@ param(
             
             if($name){
                 if($name.ToLower() -match $ProductName.ToLower()){
-                    if($path -notmatch "{.{8}-.{4}-.{4}-.{4}-0000000FF1CE}"){
+                    if($path -match "{.{8}-.{4}-.{4}-.{4}-0000000FF1CE}"){
                         if($name -match "Language Pack"){
                             if($key.Split(".")[1] -ne $null){
                                 $regex = "^[^.]*"
